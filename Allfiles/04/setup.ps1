@@ -99,6 +99,16 @@ New-AzResourceGroupDeployment -ResourceGroupName $resourceGroupName `
   -sqlUser $sqlUser `
   -sqlPassword $sqlPassword `
   -Force
+  
+# Make the current user and the Synapse service principal owners of the data lake blob store
+write-host "Granting permissions on the ** storage account..."
+write-host "(you can ignore any warnings!)"
+$subscriptionId = (Get-AzContext).Subscription.Id
+$userName = ((az ad signed-in-user show) | ConvertFrom-JSON).UserPrincipalName
+$id = (Get-AzADServicePrincipal -DisplayName $synapseWorkspace).id
+New-AzRoleAssignment -Objectid $id -RoleDefinitionName "Storage Blob Data Owner" -Scope "/subscriptions/$subscriptionId/resourceGroups/$resourceGroupName/providers/Microsoft.Storage/storageAccounts/$dataLakeAccountName" -ErrorAction SilentlyContinue;
+New-AzRoleAssignment -SignInName $userName -RoleDefinitionName "Storage Blob Data Owner" -Scope "/subscriptions/$subscriptionId/resourceGroups/$resourceGroupName/providers/Microsoft.Storage/storageAccounts/$dataLakeAccountName" -ErrorAction SilentlyContinue;
+
 
 # Create database
 write-host "Creating the $sqlDatabaseName database..."
